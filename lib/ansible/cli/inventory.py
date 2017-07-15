@@ -181,7 +181,17 @@ class InventoryCLI(CLI):
 
     def _get_host_variables(self, host):
         if self._new_api:
-           hostvars =  self.vm.get_vars(host=host)
+            hostvars = host.get_vars()
+            from ansible.plugins import lookup_loader, vars_loader
+            from ansible.utils.vars import combine_vars
+            import os
+
+            for source in self.vm._inventory._sources:
+                for plugin in vars_loader.all():
+                    hostvars = combine_vars(
+                        hostvars,
+                        plugin.get_vars(self.loader, os.path.dirname(source), [host])
+                    )
         else:
            hostvars =  self.vm.get_vars(self.loader, host=host)
         return hostvars
