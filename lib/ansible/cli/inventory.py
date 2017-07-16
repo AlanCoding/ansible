@@ -24,6 +24,11 @@ from ansible.cli import CLI
 from ansible.errors import AnsibleOptionsError
 from ansible.parsing.dataloader import DataLoader
 
+# For loading plugin vars
+from ansible.plugins import lookup_loader, vars_loader
+from ansible.utils.vars import combine_vars
+import os
+
 try:
     from __main__ import display
 except ImportError:
@@ -74,6 +79,8 @@ class InventoryCLI(CLI):
         action_group.add_option("--host", action="store", default=None, dest='host', help='Output specific host info, works as inventory script')
         action_group.add_option("--graph", action="store_true", default=False, dest='graph',
                                 help='create inventory graph, if supplying pattern it must be a valid group name')
+        action_group.add_option("--local", action="store_true", default=False, dest='local',
+                                help='Output variables on the group or host where they are defined')
         self.parser.add_option_group(action_group)
 
         # Options
@@ -179,19 +186,50 @@ class InventoryCLI(CLI):
 
         return results
 
-    def _get_host_variables(self, host):
-        if self._new_api:
-            hostvars = host.get_vars()
-            from ansible.plugins import lookup_loader, vars_loader
-            from ansible.utils.vars import combine_vars
-            import os
+    def _get_plugin_vars(self, plugin, loader, path, entities):
+        '''
+        Duplicated from ansible.vars.manager.VariableManager.get_vars
+        because it is defined on-the-fly, and so, can not be imported
+        '''
+        data = {}
+        try:
+            data = plugin.get_vars(loader, path, entities)
+        except AttributeError:
+            try:
+                for entity in entities:
+                    if isinstance(entity, Host):
+                        data.update(plugin.get_host_vars(entity.name))
+                    else:
+                        data.update(plugin.get_group_vars(entity.name))
+            except AttributeError:
+                if hasattr(plugin, 'run'):
+                    raise AnsibleError("Cannot use v1 type vars plugin %s from %s" % (plugin._load_name, plugin._original_path))
+                else:
+                    raise AnsibleError("Invalid vars plugin %s from %s" % (plugin._load_name, plugin._original_path))
+        return data
 
-            for source in self.vm._inventory._sources:
-                for plugin in vars_loader.all():
-                    hostvars = combine_vars(
-                        hostvars,
-                        plugin.get_vars(self.loader, os.path.dirname(source), [host])
-                    )
+    def _plugins_inventory(self, entities):
+        '''
+        Duplicated from ansible.vars.manager.VariableManager.get_vars
+        because it is defined on-the-fly, and so, can not be imported
+        '''
+        data = {}
+        for inventory_dir in self.vm._inventory._sources:
+            if ',' in inventory_dir:  # skip host lists
+                continue
+            elif not os.path.isdir(inventory_dir):  # always pass 'inventory directory'
+                inventory_dir = os.path.dirname(inventory_dir)
+
+            for plugin in vars_loader.all():
+                data = combine_vars(data, self._get_plugin_vars(plugin, self.loader, inventory_dir, entities))
+        return data
+
+    def _get_host_variables(self, host):
+        if self._new_api and self.options.local:
+            hostvars = host.get_vars()
+            hostvars = combine_vars(hostvars, self._plugins_inventory([host]))
+        elif self._new_api:
+            hostvars =  self.vm.get_vars(host=host)
         else:
            hostvars =  self.vm.get_vars(self.loader, host=host)
         return hostvars
@@ -261,18 +299,10 @@ class InventoryCLI(CLI):
             if group.name != 'all':
                 results[group.name]['hosts'] = [h.name for h in sorted(group.hosts, key=attrgetter('name'))]
 
-            results[group.name]['vars'] = group.get_vars()
-            if self._new_api:
-                from ansible.plugins import lookup_loader, vars_loader
-                from ansible.utils.vars import combine_vars
-                import os
-
-                for source in self.vm._inventory._sources:
-                    for plugin in vars_loader.all():
-                        results[group.name]['vars'] = combine_vars(
-                            results[group.name]['vars'],
-                            plugin.get_vars(self.loader, os.path.dirname(source), [group])
-                        )
+            if self._new_api and self.options.local:
+                groupvars = group.get_vars()
+                groupvars = combine_vars(groupvars, self._plugins_inventory([group]))
+                results[group.name]['vars'] = groupvars
 
             results[group.name]['children'] = []
             for subgroup in sorted(group.child_groups, key=attrgetter('name')):
