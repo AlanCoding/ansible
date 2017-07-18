@@ -79,7 +79,7 @@ class InventoryCLI(CLI):
         action_group.add_option("--host", action="store", default=None, dest='host', help='Output specific host info, works as inventory script')
         action_group.add_option("--graph", action="store_true", default=False, dest='graph',
                                 help='create inventory graph, if supplying pattern it must be a valid group name')
-        action_group.add_option("--local", action="store_true", default=False, dest='local',
+        action_group.add_option("--optimize", action="store_true", default=False, dest='optimize',
                                 help='Output variables on the group or host where they are defined')
         self.parser.add_option_group(action_group)
 
@@ -225,7 +225,7 @@ class InventoryCLI(CLI):
         return data
 
     def _get_host_variables(self, host):
-        if self._new_api and self.options.local:
+        if self._new_api and self.options.optimize:
             hostvars = host.get_vars()
             hostvars = combine_vars(hostvars, self._plugins_inventory([host]))
         elif self._new_api:
@@ -299,7 +299,7 @@ class InventoryCLI(CLI):
             if group.name != 'all':
                 results[group.name]['hosts'] = [h.name for h in sorted(group.hosts, key=attrgetter('name'))]
 
-            if self._new_api and self.options.local:
+            if self._new_api and self.options.optimize:
                 groupvars = group.get_vars()
                 groupvars = combine_vars(groupvars, self._plugins_inventory([group]))
                 results[group.name]['vars'] = groupvars
