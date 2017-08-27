@@ -1470,6 +1470,7 @@ class Ec2Inventory(object):
                 # print value
 
         instance_vars[self.to_safe('ec2_account_id')] = self.aws_account_id
+        instance_vars['additional_variable'] = 'foobar'
 
         return instance_vars
 
