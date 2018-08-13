@@ -70,4 +70,4 @@ class LookupModule(LookupBase):
                     host_list.extend(that)
 
         # return unique list
-        return list(set(host_list))
+        return list(host_list)
