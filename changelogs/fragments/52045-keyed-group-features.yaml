@@ -1,0 +1,3 @@
+minor_changes:
+- add keyed_groups option to use unsafe group names
+- add keyed_groups option to add groups under a common parent

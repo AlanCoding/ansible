@@ -53,9 +53,21 @@ EXAMPLES = r'''
         - prefix: distro
           key: ansible_distribution
 
+        # the following examples assume the first inventory is from contrib/inventory/ec2.py
         # this creates a group per ec2 architecture and assign hosts to the matching ones (arch_x86_64, arch_sparc, etc)
         - prefix: arch
           key: ec2_architecture
+
+        # this creates a group per ec2 region and preserves the original syntax like "us-west-1"
+        # If the unsafe keyword is not given, "-" is converted to "_"
+        - prefix: ""
+          separator: ""
+          key: ec2_region
+          unsafe: true
+
+        # this creates a common parent group for all ec2 availability zones
+        - key: ec2_placement
+          parent_group: all_ec2_zones
 '''
 
 import os
