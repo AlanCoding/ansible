@@ -233,7 +233,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                         network['subnetwork'] = self._format_network_info(network['subnetwork'])
 
             host['project'] = host['selfLink'].split('/')[6]
-            host['image'] = self._get_image(host)
         return items
 
     def _add_hosts(self, items, config_data, format_items=True):
@@ -310,17 +309,23 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                         return accessConfig[u'natIP']
         return None
 
-    def _get_image(self, item):
+    def add_image_data(self, params, item):
         '''
-            :param item: A host response from GCP
-            :return the image of this instance or None
+            :param params: a dict containing all of the fields relevant to build URL
+            :param item: data for a host
+            :return the JSON response containing a list of instances.
         '''
-        image = None
+        boot_disk = None
         for disk in item['disks']:
             if disk.get('boot'):
-                if 'initializeParams' in disk:
-                    image = disk['initializeParams']['sourceImage']
-        return image
+                boot_disk = disk
+        if boot_disk is None:
+            return None
+        module = GcpMockModule(params)
+        auth = GcpSession(module, 'compute')
+        image_id = auth.get(boot_disk['source']).json()['sourceImage']
+        hostname = self._get_hostname(item)
+        self.inventory.set_variable(hostname, 'image', image_id)
 
     def _get_privateip(self, item):
         '''
@@ -389,6 +394,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
                     link = self.self_link(config_data)
                     resp = self.fetch_list(config_data, link, query)
                     self._add_hosts(resp.get('items'), config_data)
+                    for item in resp.get('items'):
+                        self.add_image_data(config_data, item)
                     cached_data[project][zone] = resp.get('items')
 
         if cache_needs_update:
