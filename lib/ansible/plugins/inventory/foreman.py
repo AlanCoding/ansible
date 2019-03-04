@@ -38,6 +38,10 @@ DOCUMENTATION = '''
       group_prefix:
         description: prefix to apply to foreman groups
         default: foreman_
+      use_unsafe_group_names:
+        description: allow prohibited characters in group names, if false, these are replaced with underscores
+        default: false
+        version_added: "2.8"
       vars_prefix:
         description: prefix to apply to host variables, does not include facts nor params
         default: foreman_
@@ -190,6 +194,8 @@ class InventoryModule(BaseInventoryPlugin, Cacheable):
         #> ForemanInventory.to_safe("foo-bar baz")
         'foo_barbaz'
         '''
+        if self.get_option('use_unsafe_group_names'):
+            return word
         regex = r"[^A-Za-z0-9\_]"
         return re.sub(regex, "_", word.replace(" ", ""))
 
