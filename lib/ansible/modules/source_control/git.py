@@ -575,10 +575,19 @@ def get_remote_head(git_path, module, dest, version, remote, bare):
     elif is_remote_tag(git_path, module, dest, remote, version):
         tag = True
         cmd = '%s ls-remote %s -t refs/tags/%s*' % (git_path, remote, version)
-    else:
+    elif could_be_sha1(version):
         # appears to be a sha1.  return as-is since it appears
-        # cannot check for a specific sha1 on remote
+        # cannot check for a specific sha1 on remote earlier than 2.5.0
         return version
+    elif is_remote_ref(git_path, module, dest, remote, version):
+        # any candidate ref must have forward slashes, which is
+        # exclusive with specifying a SHA1
+        cmd = '%s ls-remote %s -t %s' % (git_path, remote, version)
+    else:
+        raise ValueError(
+            'Version %s is not a remote branch, remote tag, remote ref, '
+            'or valid SHA1 syntax. ' % version
+        )
     (rc, out, err) = module.run_command(cmd, check_rc=True, cwd=cwd)
     if len(out) < 1:
         module.fail_json(msg="Could not determine remote revision for %s" % version, stdout=out, stderr=err, rc=rc)
@@ -598,8 +607,32 @@ def get_remote_head(git_path, module, dest, version, remote, bare):
     return rev
 
 
+def could_be_sha1(version):
+    '''Git will allow abrevaiating to any number of characters
+    although not guaranteed to be unique
+    '''
+    if len(version) > 40:
+        return False
+    try:
+        int(version)
+    except ValueError:
+        return False
+    return True
+
+
 def is_remote_tag(git_path, module, dest, remote, version):
     cmd = '%s ls-remote %s -t refs/tags/%s' % (git_path, remote, version)
+    (rc, out, err) = module.run_command(cmd, check_rc=True, cwd=dest)
+    if to_native(version, errors='surrogate_or_strict') in out:
+        return True
+    else:
+        return False
+
+
+def is_remote_ref(git_path, module, dest, remote, version):
+    if not version.startswith('refs/'):
+        return False
+    cmd = '%s ls-remote %s -t %s' % (git_path, remote, version)
     (rc, out, err) = module.run_command(cmd, check_rc=True, cwd=dest)
     if to_native(version, errors='surrogate_or_strict') in out:
         return True
@@ -907,6 +940,8 @@ def switch_version(git_path, module, dest, remote, version, verify_commit, depth
                 if rc != 0:
                     module.fail_json(msg="Failed to checkout branch %s" % version, stdout=out, stderr=err, rc=rc)
                 cmd = "%s reset --hard %s/%s" % (git_path, remote, version)
+        elif version.startswith('refs/'):
+            cmd = "%s checkout --force refs/remotes/origin/%s" % (git_path, version.split('/', 1)[1])
         else:
             cmd = "%s checkout --force %s" % (git_path, version)
     (rc, out1, err1) = module.run_command(cmd, cwd=dest)
