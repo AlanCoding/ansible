@@ -52,6 +52,7 @@ class Git:
         :rtype: list[str]
         """
         cmd = ['ls-files', '-z'] + args
+        print('git get_file_names')
         return self.run_git_split(cmd, '\0')
 
     def get_branches(self):
@@ -114,6 +115,8 @@ class Git:
         :rtype: list[str]
         """
         output = self.run_git(cmd, str_errors=str_errors).strip(separator)
+        print('git command output: {}'.format(cmd))
+        print(output)
 
         if not output:
             return []
@@ -127,6 +130,8 @@ class Git:
         :rtype: str
         """
         try:
+            print('running git command from {}'.format(self.root))
+            print(' '.join([self.git] + cmd))
             return raw_command([self.git] + cmd, cwd=self.root, capture=True, str_errors=str_errors)[0]
         except SubprocessError as spe:
             display.warning(to_text(spe.message))

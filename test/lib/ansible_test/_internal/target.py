@@ -109,7 +109,14 @@ def filter_targets(targets,  # type: t.Iterable[TCompletionTarget]
     unmatched = set(patterns or ())
     compiled_patterns = dict((p, re.compile('^%s$' % p)) for p in patterns) if patterns else None
 
+    print('targets')
+    print(targets)
+    print('patterns')
+    print(patterns)
     for target in targets:
+        print('target: {} patterns and include'.format(target))
+        print('include')
+        print(include)
         matched_directories = set()
         match = False
 
@@ -150,6 +157,9 @@ def filter_targets(targets,  # type: t.Iterable[TCompletionTarget]
 
     if errors:
         if unmatched:
+            print('is unmatched')
+            print(unmatched)
+            raise Exception('alan!')
             raise TargetPatternsNotMatched(unmatched)
 
 
@@ -190,7 +200,10 @@ def walk_sanity_targets():
     """
     :rtype: collections.Iterable[TestTarget]
     """
-    return walk_test_targets(module_path=data_context().content.module_path, include_symlinks=True, include_symlinked_directories=True)
+    r = walk_test_targets(module_path=data_context().content.module_path, include_symlinks=True, include_symlinked_directories=True)
+    print('returning1 {}'.format(dict(module_path=data_context().content.module_path, include_symlinks=True, include_symlinked_directories=True)))
+    print(r)
+    return r
 
 
 def walk_posix_integration_targets(include_hidden=False):
@@ -308,13 +321,17 @@ def walk_test_targets(path=None, module_path=None, extensions=None, prefix=None,
     :type include_symlinked_directories: bool
     :rtype: collections.Iterable[TestTarget]
     """
+    print('called walk_test_targets')
+    print(dict(path=None, module_path=None, extensions=None, prefix=None, extra_dirs=None, include_symlinks=False, include_symlinked_directories=False))
     if path:
         file_paths = data_context().content.walk_files(path, include_symlinked_directories=include_symlinked_directories)
     else:
         file_paths = data_context().content.all_files(include_symlinked_directories=include_symlinked_directories)
 
+    print('file_paths {}'.format(file_paths))
     for file_path in file_paths:
         name, ext = os.path.splitext(os.path.basename(file_path))
+        print('name,ext {}'.format(name, ext))
 
         if extensions and ext not in extensions:
             continue

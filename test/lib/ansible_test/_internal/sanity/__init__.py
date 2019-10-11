@@ -561,6 +561,9 @@ class SanityTargets:
     def create(include, exclude, require):  # type: (t.List[str], t.List[str], t.List[str]) -> SanityTargets
         """Create a SanityTargets instance from the given include, exclude and require lists."""
         _targets = SanityTargets.get_targets()
+        print('args to include')
+        print('(_targets, include, exclude, require)')
+        print((_targets, include, exclude, require))
         _include = walk_internal_targets(_targets, include, exclude, require)
         return SanityTargets(_targets, _include)
 
@@ -591,10 +594,13 @@ class SanityTargets:
     def get_targets():  # type: () -> t.Tuple[TestTarget, ...]
         """Return a tuple of sanity test targets. Uses a cached version when available."""
         try:
+            print(1)
             return SanityTargets.get_targets.targets
         except AttributeError:
+            print(2)
             SanityTargets.get_targets.targets = tuple(sorted(walk_sanity_targets()))
-
+        print('returning2')
+        print(SanityTargets.get_targets.targets)
         return SanityTargets.get_targets.targets
 
 

@@ -45,9 +45,11 @@ class GitSource(SourceProvider):
         git = Git(path)
         paths = git.get_file_names(['--cached', '--others', '--exclude-standard'])
         deleted_paths = git.get_file_names(['--deleted'])
+        print('  git path types {}, {}'.format(paths, deleted_paths))
         paths = sorted(set(paths) - set(deleted_paths))
 
         # directory symlinks are reported by git as regular files but they need to be treated as directories
+        print('    git paths1: {}'.format(paths))
         paths = [path + os.path.sep if os.path.isdir(to_bytes(path)) else path for path in paths]
-
+        print('returning git paths: {}'.format(paths))
         return paths

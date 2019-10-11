@@ -122,12 +122,17 @@ class DataContext:
 
         try:
             source_provider = find_path_provider(SourceProvider, source_providers, root, walk)
+            print(' source provider is git')
         except ProviderNotFoundForPath:
+            print(' source provider is not git')
             source_provider = UnversionedSource(layout_provider.root)
 
         if source_provider.root != layout_provider.root and is_subdir(source_provider.root, layout_provider.root):
             raise UnexpectedSourceRoot(source_provider.root, layout_provider.root)
 
+        print('create content layout')
+        print('  type of source_provider: {}'.format(type(source_provider)))
+        # print((layout_provider.root, source_provider.get_paths(layout_provider.root)))
         layout = layout_provider.create(layout_provider.root, source_provider.get_paths(layout_provider.root))
 
         return layout

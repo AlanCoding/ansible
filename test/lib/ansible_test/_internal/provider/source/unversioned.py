@@ -86,4 +86,6 @@ class UnversionedSource(SourceProvider):
             # include directory symlinks since they will not be traversed and would otherwise go undetected
             paths.extend([os.path.join(rel_root, dir_name) + os.path.sep for dir_name in dir_names if os.path.islink(to_bytes(dir_name))])
 
+        print('unversioned source provider returning paths')
+        print(paths)
         return paths

@@ -29,9 +29,15 @@ class Layout:
         self.__files = [path for path in paths if not path.endswith(os.path.sep)]  # contains only file paths
         self.__paths_tree = paths_to_tree(self.__paths)
         self.__files_tree = paths_to_tree(self.__files)
+        print('layout initialized {}'.format((root, paths)))
+        print('            {}'.format((self.__files)))
+        # raise Exception('foo!')
 
     def all_files(self, include_symlinked_directories=False):  # type: (bool) -> t.List[str]
         """Return a list of all file paths."""
+        print('all_files __files and __paths')
+        print(self.__paths)
+        print(self.__files)
         if include_symlinked_directories:
             return self.__paths
 
