@@ -639,6 +639,7 @@ class ModuleInfo:
 
 class CollectionModuleInfo(ModuleInfo):
     def __init__(self, name, paths):
+        print('init {}'.format((name, paths)))
         self._mod_name = name
         self.py_src = True
         # FIXME: Implement pkg_dir so that we can place __init__.py files
@@ -649,7 +650,13 @@ class CollectionModuleInfo(ModuleInfo):
             try:
                 self.get_source()
             except FileNotFoundError:
+                print('')
+                import traceback
+                traceback.print_exc()
                 pass
+            except IsADirectoryError:
+                self.path = os.path.join(path, self._mod_name)
+                break
             else:
                 self.path = os.path.join(path, self._mod_name) + '.py'
                 break
@@ -663,7 +670,10 @@ class CollectionModuleInfo(ModuleInfo):
         # FIXME (nitz): need this in py2 for some reason TBD, but we shouldn't (get_data delegates
         # to wrong loader without it)
         pkg = import_module(self._package_name)
-        data = pkgutil.get_data(to_native(self._package_name), to_native(self._mod_name + '.py'))
+        try:
+            data = pkgutil.get_data(to_native(self._package_name), to_native(self._mod_name + '.py'))
+        except FileNotFoundError:
+            data = pkgutil.get_data(to_native(self._package_name), to_native(self._mod_name))
         return data
 
 
@@ -731,6 +741,9 @@ def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, z
                                                        [os.path.join(*py_module_name[:-idx])])
                     break
                 except ImportError:
+                    import traceback
+                    print('')
+                    traceback.print_exc()
                     continue
         elif py_module_name[0:2] == ('ansible', 'module_utils'):
             # Need to remove ansible.module_utils because PluginLoader may find different paths
@@ -758,7 +771,7 @@ def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, z
         if module_info is None:
             msg = ['Could not find imported module support code for %s.  Looked for' % (name,)]
             if idx == 2:
-                msg.append('either %s.py or %s.py' % (py_module_name[-1], py_module_name[-2]))
+                msg.append('either %s.py or %s.py' % (py_module_name[-1], [e for e in py_module_name]))
             else:
                 msg.append(py_module_name[-1])
             raise AnsibleError(' '.join(msg))

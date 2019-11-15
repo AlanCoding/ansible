@@ -269,8 +269,16 @@ class AnsibleCollectionLoader(with_metaclass(Singleton, object)):
         return os.path.join(path, ns_path_add)
 
     def get_data(self, filename):
-        with open(filename, 'rb') as fd:
-            return fd.read()
+        try:
+            with open(filename, 'rb') as fd:
+                return fd.read()
+        except FileNotFoundError:
+            if os.path.isdir(filename):
+                try:
+                    with open(filename + '__init__.py', 'rb') as fd:
+                        return fd.read()
+                except FileNotFoundError:
+                    return None
 
 
 class AnsibleFlatMapLoader(object):
