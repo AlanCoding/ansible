@@ -3544,6 +3544,7 @@ files:
     migrated_to: community.grafana
   $plugins/callback/foreman.py:
     maintainers: $team_foreman
+    migrated_to: theforeman.foreman
   $plugins/callback/junit:
     support: core
   $plugins/callback/minimal:
@@ -3766,6 +3767,7 @@ files:
     maintainers: $team_docker morph027
   $plugins/inventory/foreman.py:
     maintainers: $team_foreman
+    migrated_to: theforeman.foreman
   $plugins/inventory/gcp_compute.py:
     maintainers: $team_google
     supershipit: $team_google
