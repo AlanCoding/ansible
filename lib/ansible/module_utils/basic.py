@@ -54,6 +54,9 @@ import time
 import traceback
 import types
 
+import cProfile
+import pstats
+
 from collections import deque
 from itertools import chain, repeat
 
@@ -615,6 +618,9 @@ class AnsibleModule(object):
         self._legal_inputs = []
         self._options_context = list()
         self._tmpdir = None
+
+        self.prof = cProfile.Profile()
+        self.prof.enable()
 
         if add_file_common_args:
             for k, v in FILE_COMMON_ARGUMENTS.items():
@@ -2047,11 +2053,23 @@ class AnsibleModule(object):
         kwargs = remove_values(kwargs, self.no_log_values)
         print('\n%s' % self.jsonify(kwargs))
 
+    def _finish_profile(self):
+        self.prof.disable()
+        from uuid import uuid4
+        with open('/Users/alancoding/Documents/tower/testing/prof/{}'.format(uuid4()), 'w') as f:
+            # f.write('%s %s\n' % (request.method, request.get_full_path()))
+            # f.write(self._name)
+            # f.write(self.params)
+            pstats.Stats(self.prof, stream=f).sort_stats('cumulative').print_stats()
+            # import traceback
+            # traceback.print_stack(file=f)
+
     def exit_json(self, **kwargs):
         ''' return from the module, without error '''
 
         self.do_cleanup_files()
         self._return_formatted(kwargs)
+        self._finish_profile()
         sys.exit(0)
 
     def fail_json(self, msg, **kwargs):
@@ -2072,6 +2090,7 @@ class AnsibleModule(object):
 
         self.do_cleanup_files()
         self._return_formatted(kwargs)
+        self._finish_profile()
         sys.exit(1)
 
     def fail_on_missing_params(self, required_params=None):
