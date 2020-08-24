@@ -24,6 +24,7 @@ __metaclass__ = type
 import os
 import pwd
 import sys
+import getpass
 
 from ansible import constants as C
 from ansible import context
@@ -321,7 +322,11 @@ class PlayContext(Base):
         if new_info.connection == 'local':
             if not new_info.connection_user:
                 new_info.connection_user = new_info.remote_user
-            new_info.remote_user = pwd.getpwuid(os.getuid()).pw_name
+            try:
+                new_info.remote_user = getpass.getuser()
+            except KeyError:
+                # people like to make containers w/o actual valid passwd/shadow and use host uids
+                new_info.remote_user = 'uid=%s' % os.getuid()
 
         # set no_log to default if it was not previously set
         if new_info.no_log is None:
