@@ -51,7 +51,11 @@ class Connection(ConnectionBase):
         # Because we haven't made any remote connection we're running as
         # the local user, rather than as whatever is configured in
         # remote_user.
-        self._play_context.remote_user = getpass.getuser()
+        try:
+            self._play_context.remote_user = getpass.getuser()
+        except KeyError:
+            # people like to make containers w/o actual valid passwd/shadow and use host uids
+            self._play_context.remote_user = 'uid=%s' % os.getuid()
 
         if not self._connected:
             display.vvv(u"ESTABLISH LOCAL CONNECTION FOR USER: {0}".format(self._play_context.remote_user), host=self._play_context.remote_addr)
